@@ -5,6 +5,8 @@ attrs==25.3.0
 certifi==2025.8.3
 charset-normalizer==3.4.3
 comm==0.2.3
+contourpy==1.3.2
+cycler==0.12.1
 debugpy==1.8.16
 decorator==5.2.1
 et_xmlfile==2.0.0
@@ -12,6 +14,7 @@ exceptiongroup==1.3.0
 executing==2.2.1
 fastjsonschema==2.21.2
 flatbuffers==25.2.10
+fonttools==4.59.2
 gast==0.6.0
 google-pasta==0.2.0
 grpcio==1.74.0
@@ -25,10 +28,12 @@ jsonschema-specifications==2025.9.1
 jupyter_client==8.6.3
 jupyter_core==5.8.1
 keras==3.11.3
+kiwisolver==1.4.9
 libclang==18.1.1
 Markdown==3.9
 markdown-it-py==4.0.0
 MarkupSafe==3.0.2
+matplotlib==3.10.6
 matplotlib-inline==0.1.7
 mdurl==0.1.2
 ml_dtypes==0.5.3
@@ -52,6 +57,7 @@ psutil==7.0.0
 ptyprocess==0.7.0
 pure_eval==0.2.3
 Pygments==2.19.2
+pyparsing==3.2.4
 python-dateutil==2.9.0.post0
 pytz==2025.2
 PyYAML==6.0.2
