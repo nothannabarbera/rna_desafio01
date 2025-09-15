@@ -1,0 +1,94 @@
+---
+title: "Desafio 01 - REDES NEURAIS ARTIFICIAIS (APRENDIZADO PROFUNDO)"
+author: "Hanna Tatsuta Galassi"
+date: "2025-09-15"
+format:
+  pdf:
+    documentclass: article
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=1in
+    echo: false
+    warning: false
+---
+
+```{python}
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+
+tf.keras.utils.disable_interactive_logging()
+```
+
+```{python}
+path_data = "funcao.xlsx"
+df = pd.read_excel(path_data)
+```
+
+```{python}
+feature_cols = ["xgrd"]
+target_col = ["ymean"]
+
+df_features = df[feature_cols]
+df_target = df[target_col]
+```
+
+```{python}
+verbose = 0
+activation_function = "relu"
+loss_function = "mse"
+optimizer_function = "adam"
+
+layer1_nodes = 10
+layer2_nodes = 10
+layer3_nodes = 1
+
+epochs = 1000
+```
+
+```{python}
+# Construção do modelo
+mlp_model = tf.keras.models.Sequential(
+    [
+        tf.keras.layers.Dense(
+            layer1_nodes, activation=activation_function,
+            input_shape=(len(feature_cols),)),
+        tf.keras.layers.Dense(layer2_nodes, activation=activation_function),
+        tf.keras.layers.Dense(layer3_nodes, activation="linear"),
+    ]
+)
+```
+
+```{python}
+# Compilação do modelo
+mlp_model.compile(optimizer=optimizer_function, loss=loss_function)
+```
+
+```{python}
+#| output: false
+# Treinamento do modelo
+history = mlp_model.fit(df_features, df_target, epochs=epochs, verbose=0)
+```
+
+```{python}
+X_range = np.linspace(df_features.min(), df_features.max(), 100).reshape(-1, 1)
+y_pred_curve = mlp_model.predict(X_range).flatten()
+```
+
+```{python}
+plt.figure(figsize=(10, 7))
+plt.scatter(
+    df_features, df_target, label='Dados Originais', color='blue', alpha=0.7)
+plt.plot(
+    X_range, y_pred_curve, color='red', linewidth=3,
+    label='Curva de Predição do Modelo')
+plt.title("Ajuste da Regressão com uma Única Feature")
+plt.xlabel("Feature (X)")
+plt.ylabel("Target (y)")
+plt.legend()
+plt.grid(True)
+plt.show()
+```
