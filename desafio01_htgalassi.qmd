@@ -1,7 +1,7 @@
 ---
 title: "Desafio 01 - REDES NEURAIS ARTIFICIAIS (APRENDIZADO PROFUNDO)"
 author: "Hanna Tatsuta Galassi"
-date: "2025-09-15"
+date: "2025-09-17"
 format:
   pdf:
     documentclass: article
@@ -16,11 +16,15 @@ format:
 ---
 
 ```{python}
+import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from tensorflow.keras.callbacks import EarlyStopping
 
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', message='.*retracing.*')
 tf.keras.utils.disable_interactive_logging()
 ```
 
@@ -38,57 +42,177 @@ df_target = df[target_col]
 ```
 
 ```{python}
+def train_and_plot_model(
+    df_features,
+    df_target,
+    layer_nodes: list,
+    activation_function: str,
+    loss_function: str,
+    optimizer_function: str,
+    epochs: int
+):
+    """
+    Constrói, treina e plota uma Rede Neural MLP para regressão.
+
+    Args:
+        df_features (pd.DataFrame): DataFrame com a(s) feature(s).
+        df_target (pd.DataFrame): DataFrame com a variável target.
+        layer_nodes (list): Lista com o número de neurônios por camada oculta.
+        activation_function (str): Função de ativação para as camadas ocultas.
+        loss_function (str): Função de perda para o modelo.
+        optimizer_function (str): Otimizador para o treinamento.
+        epochs (int): Quantidade de épocas para o treinamento.
+
+    Returns:
+        tf.keras.models.Sequential: O modelo Keras treinado.
+    """
+    # 1. Construção do modelo
+    model_layers = []
+    
+    # Camada de entrada/primeira camada oculta
+    model_layers.append(
+        tf.keras.layers.Dense(
+            layer_nodes[0], activation=activation_function,
+            input_shape=(len(df_features.columns),))
+    )
+    
+    # Camadas ocultas adicionais
+    for nodes in layer_nodes[1:]:
+        model_layers.append(tf.keras.layers.Dense(nodes, activation=activation_function))
+        
+    # Camada de saída (para regressão)
+    model_layers.append(tf.keras.layers.Dense(1, activation="linear"))
+
+    mlp_model = tf.keras.models.Sequential(model_layers)
+
+    # 2. Compilação do modelo
+    mlp_model.compile(optimizer=optimizer_function, loss=loss_function)
+
+    # 3. Treinamento do modelo
+    mlp_model.fit(df_features, df_target, epochs=epochs, verbose=0)
+
+    # 4. Predição e plotagem
+    X_range = np.linspace(
+        df_features.min(), df_features.max(), 100).reshape(-1, 1)
+    y_pred_curve = mlp_model.predict(X_range, verbose=0).flatten()
+
+    plt.figure(figsize=(10, 7))
+    plt.scatter(df_features, df_target, label='Dados Originais', color='blue', alpha=0.7)
+    plt.plot(X_range, y_pred_curve, color='red', linewidth=3, label='Curva de Predição do Modelo')
+    plt.title("Ajuste da Regressão com uma Única Feature")
+    plt.xlabel("Feature (X)")
+    plt.ylabel("Target (y)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    return mlp_model
+```
+
+# Introdução
+
+Este relatório apresenta os resultados do desafio de modelagem de uma função univariada desconhecida usando uma Rede Neural Artificial do tipo Perceptron de Múltiplas Camadas (MLP). O objetivo principal do estudo é encontrar a topologia mínima (o número de camadas e neurônios) necessária para modelar a relação entre a feature xgrd e a variável alvo ymean.
+
+Além de determinar a arquitetura ideal, o estudo investiga a influência de diferentes funções de ativação—ReLU, tangente hiperbólica (tanh) e sigmoide—no desempenho do modelo. Para garantir a robustez das conclusões, cada configuração testada foi executada múltiplas vezes para avaliar a variabilidade dos resultados. O relatório discute as principais descobertas obtidas a partir dessas análises, apresentando uma discussão sobre a eficiência e a capacidade de generalização de cada modelo.
+
+# Discussão
+
+O processo de desenvolvimento de um modelo de aprendizado profundo envolve a escolha de hiperparâmetros que influenciam diretamente seu desempenho. Esta seção detalha a metodologia utilizada para encontrar a topologia ideal da rede neural, bem como a avaliação do impacto de diferentes funções de ativação e da variabilidade inerente ao treinamento.
+
+## Topologia mínima
+
+A busca pela topologia mínima foi realizada por meio de uma abordagem iterativa. Após diversos testes, a topologia de uma única camada oculta com 8 neurônios e função de ativação sigmoide foi identificada como a arquitetura mais simples e eficiente para modelar a relação entre `xgrd` e `ymean`. Essa arquitetura demonstrou ser suficiente para capturar a forma da função de maneira satisfatória, sem a necessidade de camadas adicionais ou maior complexidade.
+
+A seguir, é apresentado um gráfico que ilustra o ajuste da topologia mínima encontrada (linha vermelha) em relação à curva entre `xgrd` e `ymean`.
+```{python}
 verbose = 0
 activation_function = "sigmoid"
 loss_function = "mse"
 optimizer_function = "adam"
 
 layer1_nodes = 8
-layer2_nodes = 10
-layer_final_nodes = 1
 
 epochs = 1000
 ```
 
 ```{python}
-# Construção do modelo
-mlp_model = tf.keras.models.Sequential(
-    [
-        tf.keras.layers.Dense(
-            layer1_nodes, activation=activation_function,
-            input_shape=(len(feature_cols),)),
-        tf.keras.layers.Dense(layer_final_nodes, activation="linear"),
-    ]
+min_mlp = train_and_plot_model(
+    df_features, df_target,
+    layer_nodes=[layer1_nodes],
+    activation_function=activation_function,
+    loss_function=loss_function,
+    optimizer_function=optimizer_function,
+    epochs=epochs
 )
 ```
 
+## Utilização de diferentes funções de ativação
+Com a topologia mínima definida, a análise foi expandida para avaliar a influência de três funções de ativação (ReLU, tangente hiperbólica (tanh) e sigmoide) no desempenho do modelo. Para cada função, foram treinados cinco modelos com as mesmas condições iniciais para analisar a variabilidade dos resultados. Os gráficos a seguir ilustram o ajuste dos cinco modelos treinados com cada função de ativação.
 ```{python}
-# Compilação do modelo
-mlp_model.compile(optimizer=optimizer_function, loss=loss_function)
+min_topology_nodes = [layer1_nodes] 
+
+activation_functions = ["relu", "tanh", "sigmoid"]
+epochs = 2000
+num_models_per_config = 5
+
+# Laço principal para testar cada função de ativação
+for act_func in activation_functions:
+    
+    # Cria uma nova figura para cada função de ativação
+    plt.figure(figsize=(12, 8))
+    plt.scatter(
+        df_features, df_target, label='Dados Originais', color='gray',
+        alpha=0.5)
+
+    early_stopping = EarlyStopping(monitor='loss', patience=100, verbose=0)
+    
+    # Laço para treinar múltiplos modelos e avaliar a variabilidade
+    for i in range(num_models_per_config):
+        
+        # Construção do modelo com a topologia mínima
+        mlp_model = tf.keras.models.Sequential(
+            [
+                tf.keras.layers.Dense(
+                    min_topology_nodes[0], activation=act_func,
+                    input_shape=(len(feature_cols),)),
+                tf.keras.layers.Dense(1, activation="linear"),
+            ]
+        )
+        mlp_model.compile(optimizer="adam", loss="mse")
+        
+        # Treinamento do modelo com o callback
+        mlp_model.fit(
+            df_features, df_target, epochs=epochs, verbose=0,
+            callbacks=[early_stopping])
+        
+        # Captura da curva de predição
+        X_range_pred = np.linspace(
+            df_features.min(), df_features.max(), 100).reshape(-1, 1)
+        y_pred_curve = mlp_model.predict(X_range_pred, verbose=0).flatten()
+        
+        # Plotagem da curva no gráfico atual
+        plt.plot(
+            X_range_pred, y_pred_curve, linestyle='--',
+            label=f'Modelo {i+1}', alpha=0.7, linewidth=2)
+
+    # Configurações do gráfico
+    plt.title(f"Ajuste com a Função de Ativação: {act_func.upper()}")
+    plt.xlabel("Feature (xgrd)")
+    plt.ylabel("Target (ymean)")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 ```
 
-```{python}
-#| output: false
-# Treinamento do modelo
-history = mlp_model.fit(df_features, df_target, epochs=epochs, verbose=0)
-```
+A topologia de 6 neurônios com a função de ativação ReLU demonstrou alta variabilidade. Os cinco modelos resultantes não convergiram para a mesma solução, apresentando ajustes inconsistentes aos dados. Esse comportamento pode ser atribuído à natureza linear por partes da função ReLU, que pode fazer com que a rede fique mais suscetível a mínimos locais ruins na otimização.
 
-```{python}
-X_range = np.linspace(df_features.min(), df_features.max(), 100).reshape(-1, 1)
-y_pred_curve = mlp_model.predict(X_range).flatten()
-```
+Os resultados para as funções sigmoide e tangente hiperbólica (tanh) revelaram um comportamento interessante e não trivial. Em ambos os casos, apenas um dos cinco modelos (o Modelo 1) foi capaz de atingir um ajuste preciso e satisfatório aos dados originais. Os demais modelos de cada configuração não conseguiram capturar a forma correta da função, indicando que o treinamento ficou preso em mínimos locais ineficientes.
 
-```{python}
-plt.figure(figsize=(10, 7))
-plt.scatter(
-    df_features, df_target, label='Dados Originais', color='blue', alpha=0.7)
-plt.plot(
-    X_range, y_pred_curve, color='red', linewidth=3,
-    label='Curva de Predição do Modelo')
-plt.title("Ajuste da Regressão com uma Única Feature")
-plt.xlabel("Feature (X)")
-plt.ylabel("Target (y)")
-plt.legend()
-plt.grid(True)
-plt.show()
-```
+
+# Conclusões
+O estudo encontrou que uma topologia de uma única camada oculta com 6 neurônios foi a arquitetura mínima capaz de capturar a relação entre as variáveis.
+
+A análise da influência de diferentes funções de ativação mostrou que a escolha desse hiperparâmetro é crítica para o desempenho do modelo. A função ReLU, apesar de ser popular, demonstrou alta variabilidade para esta topologia, resultando em ajustes inconsistentes. Por outro lado, as funções sigmoide e tangente hiperbólica (tanh) mostraram um potencial para um ajuste excelente, mas com um desempenho altamente dependente das condições iniciais de treinamento.
+
+A principal conclusão é que, para um desempenho consistente e confiável, a escolha de uma topologia não deve se basear em um único resultado satisfatório, mas sim em testes de variabilidade que comprovem a robustez do treinamento. O experimento demonstrou que as funções sigmoide e tanh, embora capazes de um bom ajuste, não são escolhas robustas para esta tarefa, pois quatro de cada cinco modelos falharam em convergir para uma solução ideal.
