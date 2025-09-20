@@ -78,7 +78,8 @@ def train_and_plot_model(
     
     # Camadas ocultas adicionais
     for nodes in layer_nodes[1:]:
-        model_layers.append(tf.keras.layers.Dense(nodes, activation=activation_function))
+        model_layers.append(tf.keras.layers.Dense(
+            nodes, activation=activation_function))
         
     # Camada de saída (para regressão)
     model_layers.append(tf.keras.layers.Dense(1, activation="linear"))
@@ -97,8 +98,12 @@ def train_and_plot_model(
     y_pred_curve = mlp_model.predict(X_range, verbose=0).flatten()
 
     plt.figure(figsize=(10, 7))
-    plt.scatter(df_features, df_target, label='Dados Originais', color='blue', alpha=0.7)
-    plt.plot(X_range, y_pred_curve, color='red', linewidth=3, label='Curva de Predição do Modelo')
+    plt.scatter(
+        df_features, df_target, label='Dados Originais',
+        color='blue', alpha=0.7)
+    plt.plot(
+        X_range, y_pred_curve, color='red', linewidth=3,
+        label='Curva de Predição do Modelo')
     plt.title("Ajuste da Regressão com uma Única Feature")
     plt.xlabel("Feature (X)")
     plt.ylabel("Target (y)")
@@ -121,7 +126,7 @@ O processo de desenvolvimento de um modelo de aprendizado profundo envolve a esc
 
 ## Topologia mínima
 
-A busca pela topologia mínima foi realizada por meio de uma abordagem iterativa. Após diversos testes, a topologia de uma única camada oculta com 8 neurônios e função de ativação sigmoide foi identificada como a arquitetura mais simples e eficiente para modelar a relação entre `xgrd` e `ymean`. Essa arquitetura demonstrou ser suficiente para capturar a forma da função de maneira satisfatória, sem a necessidade de camadas adicionais ou maior complexidade.
+A busca pela topologia mínima foi realizada por meio de uma abordagem iterativa. Após diversos testes, a topologia de uma única camada oculta com 8 neurônios e função de ativação sigmoide foi identificada como a arquitetura mais simples e eficiente para modelar a relação entre `xgrd` e `ymean` ao longo de 2000 passos. Essa arquitetura demonstrou ser suficiente para capturar a forma da função de maneira satisfatória, sem a necessidade de camadas adicionais ou maior complexidade.
 
 A seguir, é apresentado um gráfico que ilustra o ajuste da topologia mínima encontrada (linha vermelha) em relação à curva entre `xgrd` e `ymean`.
 ```{python}
@@ -132,7 +137,7 @@ optimizer_function = "adam"
 
 layer1_nodes = 8
 
-epochs = 1000
+epochs = 2000
 ```
 
 ```{python}
@@ -149,10 +154,9 @@ min_mlp = train_and_plot_model(
 ## Utilização de diferentes funções de ativação
 Com a topologia mínima definida, a análise foi expandida para avaliar a influência de três funções de ativação (ReLU, tangente hiperbólica (tanh) e sigmoide) no desempenho do modelo. Para cada função, foram treinados cinco modelos com as mesmas condições iniciais para analisar a variabilidade dos resultados. Os gráficos a seguir ilustram o ajuste dos cinco modelos treinados com cada função de ativação.
 ```{python}
-min_topology_nodes = [layer1_nodes] 
+min_topology_nodes = [layer1_nodes]
 
 activation_functions = ["relu", "tanh", "sigmoid"]
-epochs = 2000
 num_models_per_config = 5
 
 # Laço principal para testar cada função de ativação
@@ -163,8 +167,6 @@ for act_func in activation_functions:
     plt.scatter(
         df_features, df_target, label='Dados Originais', color='gray',
         alpha=0.5)
-
-    early_stopping = EarlyStopping(monitor='loss', patience=100, verbose=0)
     
     # Laço para treinar múltiplos modelos e avaliar a variabilidade
     for i in range(num_models_per_config):
@@ -183,7 +185,7 @@ for act_func in activation_functions:
         # Treinamento do modelo com o callback
         mlp_model.fit(
             df_features, df_target, epochs=epochs, verbose=0,
-            callbacks=[early_stopping])
+            )
         
         # Captura da curva de predição
         X_range_pred = np.linspace(
@@ -205,14 +207,14 @@ for act_func in activation_functions:
     plt.show()
 ```
 
-A topologia de 6 neurônios com a função de ativação ReLU demonstrou alta variabilidade. Os cinco modelos resultantes não convergiram para a mesma solução, apresentando ajustes inconsistentes aos dados. Esse comportamento pode ser atribuído à natureza linear por partes da função ReLU, que pode fazer com que a rede fique mais suscetível a mínimos locais ruins na otimização.
+A topologia de 8 neurônios com a função de ativação ReLU demonstrou um comportamento consistente, mas resultou em um ajuste insatisfatório. Embora todos os cinco modelos tenham convergido para a mesma solução, a natureza linear da função ReLU para valores positivos de entrada impediu que a rede neural capturasse a forma completa dos dados originais. O resultado foi um modelo que se ajustou bem apenas à primeira parte da curva, falhando em modelar a segunda metade.
 
-Os resultados para as funções sigmoide e tangente hiperbólica (tanh) revelaram um comportamento interessante e não trivial. Em ambos os casos, apenas um dos cinco modelos (o Modelo 1) foi capaz de atingir um ajuste preciso e satisfatório aos dados originais. Os demais modelos de cada configuração não conseguiram capturar a forma correta da função, indicando que o treinamento ficou preso em mínimos locais ineficientes.
+Em contraste, as funções sigmoide e tangente hiperbólica (tanh) demonstraram um desempenho superior e, principalmente, uma consistência notável. Em ambos os casos, todos os cinco modelos treinados convergiram para a mesma solução, ajustando-se de forma precisa e satisfatória aos dados originais. Essa consistência, evidenciada pela sobreposição das curvas, comprova que a topologia de 8 neurônios, combinada com as funções sigmoide ou tanh, é robusta e capaz de encontrar a solução ideal de forma confiável para este problema.
 
 
 # Conclusões
-O estudo encontrou que uma topologia de uma única camada oculta com 6 neurônios foi a arquitetura mínima capaz de capturar a relação entre as variáveis.
+O estudo demonstrou que a topologia de uma única camada oculta com 8 neurônios foi a arquitetura mínima capaz de capturar a relação complexa entre as variáveis.
 
-A análise da influência de diferentes funções de ativação mostrou que a escolha desse hiperparâmetro é crítica para o desempenho do modelo. A função ReLU, apesar de ser popular, demonstrou alta variabilidade para esta topologia, resultando em ajustes inconsistentes. Por outro lado, as funções sigmoide e tangente hiperbólica (tanh) mostraram um potencial para um ajuste excelente, mas com um desempenho altamente dependente das condições iniciais de treinamento.
+A análise da influência de diferentes funções de ativação mostrou que a escolha desse hiperparâmetro é crítica para o desempenho do modelo, mas que, quando bem-escolhida, a topologia é robusta. A função ReLU, apesar de popular, se mostrou inadequada para essa tarefa, falhando em modelar completamente a relação entre as variáveis. Por outro lado, as funções sigmoide e tangente hiperbólica (tanh) não apenas se ajustaram com perfeição aos dados, mas também garantiram que o treinamento fosse consistente, com múltiplos modelos convergindo para a mesma solução ideal.
 
-A principal conclusão é que, para um desempenho consistente e confiável, a escolha de uma topologia não deve se basear em um único resultado satisfatório, mas sim em testes de variabilidade que comprovem a robustez do treinamento. O experimento demonstrou que as funções sigmoide e tanh, embora capazes de um bom ajuste, não são escolhas robustas para esta tarefa, pois quatro de cada cinco modelos falharam em convergir para uma solução ideal.
+A principal conclusão é que, para um desempenho consistente e confiável, a topologia de 8 neurônios combinada com uma função de ativação como a tanh ou a sigmoide é a escolha mais robusta. O experimento demonstrou que essas funções, ao contrário da ReLU, conseguem capturar a complexidade da curva e oferecem a confiabilidade necessária para que o modelo encontre a melhor solução em diferentes rodadas de treinamento
